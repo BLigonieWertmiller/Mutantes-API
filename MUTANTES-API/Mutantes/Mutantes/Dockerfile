@@ -1,31 +1,14 @@
-# ========================================
 # ETAPA 1: BUILD
-# ========================================
-FROM eclipse-temurin:21-jdk-alpine as build
-
-WORKDIR /app
-
-# OJO AQUÍ: Ya NO ponemos "Mutantes/" antes de los archivos.
-# Como el contexto es la carpeta interna, los archivos están ahí mismo.
-
-COPY gradle gradle
-COPY build.gradle settings.gradle gradlew ./
-
+FROM alpine:latest as build
+RUN apk update && apk add openjdk21
+COPY . .
 RUN chmod +x ./gradlew
-RUN ./gradlew dependencies --no-daemon
-
-COPY src src
-
 RUN ./gradlew bootJar --no-daemon
 
-# ========================================
 # ETAPA 2: RUNTIME
-# ========================================
-FROM eclipse-temurin:21-jre-alpine
-
-WORKDIR /app
+FROM eclipse-temurin:21-jdk-alpine
 EXPOSE 8080
+COPY --from=build ./build/libs/Mutantes-0.0.1-SNAPSHOT.jar ./app.jar
 
-COPY --from=build /app/build/libs/*.jar app.jar
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# CAMBIO CLAVE: Usamos formato shell (sin corchetes) para evitar errores de parsing
+ENTRYPOINT java -jar app.jar
